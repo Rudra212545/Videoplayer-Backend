@@ -144,8 +144,8 @@ const loginUser = asyncHandler(async (req,res)=>{
 const logoutUser = asyncHandler(async (req,res)=>{
    await User.findByIdAndUpdate(
         req.user._id,{
-            $set :{
-                refreshToken : undefined
+            $unset :{
+                refreshToken : 1
             }
         },
         {
@@ -195,8 +195,8 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
  
      return res
      .status(200)
-     .cookies("accessToken",accessToken,options)
-     .cookies("refreshToken",newRefreshToken,options)
+     .cookie("accessToken",accessToken,options)
+     .cookie("refreshToken",newRefreshToken,options)
      .json(
          new ApiResponse(
              200,
@@ -283,7 +283,7 @@ const updateUserAvatar = asyncHandler(async (req,res)=>{
 
     return res
     .status(200)
-    .json(new ApiResponse(200,user,"Cover Image Uploaded"))
+    .json(new ApiResponse(200,user,"Avatar Image Uploaded"))
     
 })
 const updateCoverImage = asyncHandler(async (req,res)=>{
@@ -317,14 +317,14 @@ const updateCoverImage = asyncHandler(async (req,res)=>{
 const getUserChannelProfile = asyncHandler(async (req,res)=>{
     const {username} = req.params
 
-    if(!usernmae?.trim()){
+    if(!username?.trim()){
         throw new ApiError(400,"Username is missing");
     }
 
     const channel = await User.aggregate([
         {
             $match:{
-                usernmae:username?.toLowerCase()
+                username:username?.toLowerCase()
             }
         },
         {
@@ -345,15 +345,15 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
             }
         },
         {
-            $addFields:{
-                subscribersCount:{
+            $addFields: {
+                subscribersCount: {
                     $size: "$subscribers"
                 },
                 channelsSubscribedToCount:{
                     $size:"$subscribedTo"
                 },
                 isSubscribed:{
-                    $condition:{
+                    $cond:{
                         if:{$in: [req.user?._id,"$subscribers.subscriber"]},
                         then: true,
                         else: false 
@@ -370,7 +370,6 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
                 avatar:1,
                 coverImage:1,
                 email:1,
-                isSubscribed:1
             }
         }
     ])
